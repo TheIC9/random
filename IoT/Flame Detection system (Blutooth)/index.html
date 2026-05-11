@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Alert System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .status.safe {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.alert {
+            background: #f8d7da;
+            color: #721c24;
+            animation: pulse 1s infinite;
+        }
+        
+        .status.disconnected {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+        
+        .file-input-wrapper label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        
+        .device-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .device-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .device-item:hover {
+            background: #e9ecef;
+        }
+        
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #667eea;
+            padding-left: 10px;
+        }
+        
+        .instructions {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Fire Alert System</h1>
+        <p class="subtitle">Bluetooth HC-05 Connection</p>
+        
+        <div class="instructions">
+            <strong>Setup Instructions:</strong>
+            <ol>
+                <li>Upload the Bluetooth code to Arduino</li>
+                <li>Pair HC-05 with your phone (PIN: 1234 or 0000)</li>
+                <li>Upload your custom alarm sound below</li>
+                <li>Click "Connect to Bluetooth"</li>
+                <li>Select HC-05 device from the list</li>
+            </ol>
+        </div>
+        
+        <div class="file-input-wrapper">
+            <label for="alarmSound">Custom Alarm Sound (MP3/WAV):</label>
+            <input type="file" id="alarmSound" accept="audio/*">
+        </div>
+        
+        <div class="status disconnected" id="status">
+            Not Connected
+        </div>
+        
+        <button class="btn btn-primary" id="connectBtn" onclick="connectBluetooth()">
+            Connect to Bluetooth
+        </button>
+        
+        <button class="btn btn-danger" id="disconnectBtn" onclick="disconnectBluetooth()" disabled>
+            Disconnect
+        </button>
+        
+        <button class="btn btn-primary" onclick="testAlarm()">
+            Test Alarm Sound
+        </button>
+        
+        <div class="log" id="log"></div>
+    </div>
+    
+    <audio id="alarmAudio" loop></audio>
+    
+    <script>
+        let bluetoothDevice;
+        let characteristic;
+        let customAlarmUrl = null;
+        let isAlarmPlaying = false;
+        
+        // Handle custom alarm upload
+        document.getElementById('alarmSound').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                customAlarmUrl = URL.createObjectURL(file);
+                document.getElementById('alarmAudio').src = customAlarmUrl;
+                addLog('✓ Custom alarm sound loaded: ' + file.name);
+            }
+        });
+        
+        async function connectBluetooth() {
+            try {
+                addLog('Searching for Bluetooth devices...');
+                
+                // Request Bluetooth device
+                bluetoothDevice = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { namePrefix: 'HC-05' },
+                        { namePrefix: 'HC' }
+                    ],
+                    optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+                });
+                
+                addLog('Connecting to: ' + bluetoothDevice.name);
+                
+                const server = await bluetoothDevice.gatt.connect();
+                const service = await server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+                characteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+                
+                // Start notifications
+                await characteristic.startNotifications();
+                characteristic.addEventListener('characteristicvaluechanged', handleData);
+                
+                document.getElementById('status').textContent = 'Connected - Monitoring';
+                document.getElementById('status').className = 'status safe';
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                
+                addLog('✓ Connected successfully! Monitoring for fire...');
+            } catch (error) {
+                addLog('✗ Error: ' + error.message);
+                alert('Connection failed. Make sure HC-05 is paired with your phone and in range.');
+            }
+        }
+        
+        function handleData(event) {
+            const value = new TextDecoder().decode(event.target.value);
+            addLog('Received: ' + value);
+            
+            if (value.includes('FIRE_ALERT')) {
+                triggerAlarm();
+            } else if (value.includes('FIRE_CLEAR')) {
+                stopAlarm();
+            }
+        }
+        
+        function triggerAlarm() {
+            if (!isAlarmPlaying) {
+                const audio = document.getElementById('alarmAudio');
+                
+                if (!customAlarmUrl) {
+                    // Use browser's notification sound
+                    addLog('⚠ Using default alarm (no custom sound loaded)');
+                    // Create a simple beep tone
+                    playBeep();
+                } else {
+                    audio.play();
+                }
+                
+                isAlarmPlaying = true;
+                document.getElementById('status').textContent = '🔥 FIRE DETECTED!';
+                document.getElementById('status').className = 'status alert';
+                
+                // Vibrate if supported
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200, 100, 200]);
+                }
+                
+                addLog('🚨 FIRE ALERT TRIGGERED!');
+            }
+        }
+        
+        function stopAlarm() {
+            const audio = document.getElementById('alarmAudio');
+            audio.pause();
+            audio.currentTime = 0;
+            isAlarmPlaying = false;
+            
+            document.getElementById('status').textContent = 'Connected - Monitoring';
+            document.getElementById('status').className = 'status safe';
+            addLog('✓ Fire cleared - Alarm stopped');
+        }
+        
+        function playBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+            
+            setTimeout(() => {
+                if (isAlarmPlaying) playBeep();
+            }, 600);
+        }
+        
+        function disconnectBluetooth() {
+            if (bluetoothDevice && bluetoothDevice.gatt.connected) {
+                bluetoothDevice.gatt.disconnect();
+                stopAlarm();
+                
+                document.getElementById('status').textContent = 'Not Connected';
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('connectBtn').disabled = false;
+                document.getElementById('disconnectBtn').disabled = true;
+                
+                addLog('✓ Disconnected');
+            }
+        }
+        
+        function testAlarm() {
+            addLog('Testing alarm...');
+            triggerAlarm();
+            setTimeout(stopAlarm, 3000);
+        }
+        
+        function addLog(message) {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+            
+            // Keep only last 10 entries
+            while (log.children.length > 10) {
+                log.removeChild(log.lastChild);
+            }
+        }
+        
+        // Check for Web Bluetooth support
+        if (!navigator.bluetooth) {
+            document.getElementById('status').textContent = 'Bluetooth not supported';
+            document.getElementById('connectBtn').disabled = true;
+            addLog('✗ Web Bluetooth API not supported on this browser');
+            addLog('Try using Chrome or Edge on Android');
+        }
+    </script>
+</body>
+</html>
