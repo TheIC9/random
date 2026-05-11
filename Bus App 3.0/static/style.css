@@ -1,0 +1,285 @@
+/* Enhanced Custom Styles for Bus Booking App */
+
+body {
+    background: linear-gradient(135deg, #e0f7fa, #f8f9fa);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow-x: hidden;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+/* Card styling with floating effect */
+.card {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    border: none;
+    border-radius: 15px;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    animation: floatCard 5s ease-in-out infinite;
+}
+
+.card:hover {
+    transform: translateY(-8px) scale(1.03);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Card header glow */
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 15px 15px 0 0 !important;
+    text-align: center;
+    font-weight: bold;
+    color: #007bff;
+    box-shadow: inset 0 -2px 5px rgba(0, 123, 255, 0.1);
+}
+
+/* Seat grid */
+.seat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-width: 320px;
+    margin: 0 auto;
+    animation: fadeInUp 1.2s ease;
+}
+
+/* Seat styling with animations */
+.seat {
+    padding: 14px 10px;
+    text-align: center;
+    border: 2px solid #ddd;
+    cursor: pointer;
+    background-color: #28a745;
+    color: white;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: all 0.4s ease;
+    user-select: none;
+    position: relative;
+    animation: floatSeat 6s ease-in-out infinite;
+}
+
+/* Hover effects */
+.seat.available:hover {
+    background-color: #218838;
+    transform: scale(1.08) rotate(-2deg);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+}
+
+/* Booked seat */
+.seat.booked {
+    background-color: #dc3545;
+    cursor: not-allowed;
+    opacity: 0.7;
+    animation: none;
+}
+
+/* Selected seat glow */
+.seat.selected {
+    background-color: #007bff;
+    border-color: #0056b3;
+    transform: scale(1.12);
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.8), 0 6px 12px rgba(0, 0, 0, 0.25);
+    animation: glowPulse 1.5s infinite;
+}
+
+/* Animations */
+@keyframes floatCard {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+@keyframes floatSeat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 123, 255, 0.6); }
+    50% { box-shadow: 0 0 20px rgba(0, 123, 255, 1); }
+}
+
+/* Universal button hover effect */
+button {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+button:hover {
+    transform: scale(1.07);
+    background-color: #003912;   /* highlight blue */
+    color: #b61111;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25),
+                0 0 12px rgba(0, 123, 255, 0.6);
+}
+
+/* ===================== DARK MODE ===================== */
+body.dark-mode {
+    background: linear-gradient(135deg, #121212, #1e1e1e);
+    color: #f1f1f1;
+}
+
+/* Navbar */
+body.dark-mode .navbar {
+    background-color: #007bff !important;
+}
+/* Jumbotron / Hero Box Dark Mode */
+body.dark-mode .jumbotron {
+    background-color: #1f1f1f !important;
+    color: #f1f1f1;
+    border: 1px solid #333;
+}
+
+/* Cards */
+body.dark-mode .card {
+    background-color: #1f1f1f;
+    color: #f1f1f1;
+    box-shadow: 0 6px 18px rgba(255, 255, 255, 0.08);
+}
+
+/* Card header */
+body.dark-mode .card-header {
+    background-color: #2a2a2a;
+    color: #66b2ff;
+    border-bottom: 1px solid #444;
+    box-shadow: inset 0 -2px 5px rgba(255, 255, 255, 0.05);
+}
+
+/* Seats in dark mode */
+body.dark-mode .seat {
+    border: 2px solid #555;
+}
+body.dark-mode .seat.available:hover {
+    background-color: #1f7030;
+}
+body.dark-mode .seat.booked {
+    background-color: #a12734;
+}
+body.dark-mode .seat.selected {
+    background-color: #3399ff;
+    border-color: #0077cc;
+}
+
+/* Footer */
+body.dark-mode footer {
+    background-color: #222 !important;
+    color: #bbb;
+}
+
+/* Dark mode button styling */
+#theme-toggle {
+    border: none;
+    border-radius: 50px;
+    padding: 6px 12px;
+    transition: all 0.3s ease;
+}
+/* ===================== DARK MODE TABLES ===================== */
+
+/* Table background & text */
+body.dark-mode table.table {
+    background-color: #1f1f1f;
+    color: #f1f1f1;
+    border: 1px solid #333;
+}
+
+/* Table header */
+body.dark-mode table thead {
+    background-color: #2a2a2a;
+    color: #66b2ff;
+    border-bottom: 2px solid #444;
+}
+
+/* Table rows */
+body.dark-mode table tbody tr {
+    background-color: #1f1f1f;
+    color: #ddd;
+    transition:  0.3s ease;
+}
+body.dark-mode table tbody tr:nth-child(even) {
+    background-color: #ffffff;
+}
+body.dark-mode table tbody tr:hover {
+    background-color: #7a7a7a;
+}
+
+/* Badges */
+body.dark-mode .badge.bg-success {
+    background-color: #2e8b57 !important;
+}
+body.dark-mode .badge.bg-warning {
+    background-color: #b38f00 !important;
+    color: #fff !important;
+}
+body.dark-mode .badge.bg-danger {
+    background-color: #b22222 !important;
+}
+body.dark-mode .badge.bg-info {
+    background-color: #117a8b !important;
+    color: #fff !important;
+}
+
+/* Alerts */
+body.dark-mode .alert-info {
+    background-color: #1e3a5f;
+    color: #a3c9ff;
+    border: 1px solid #3f6ca6;
+}
+body.dark-mode .alert-warning {
+    background-color: #4a3c1a;
+    color: #ffd966;
+    border: 1px solid #8a6d3b;
+}
+body.dark-mode .alert-danger {
+    background-color: #5c1a1a;
+    color: #ff9999;
+    border: 1px solid #a94442;
+}
+
+/* Buttons override for dark mode */
+body.dark-mode .btn-primary {
+    background-color: #0077cc;
+    border-color: #006bb3;
+}
+body.dark-mode .btn-danger {
+    background-color: #cc3333;
+    border-color: #b32d2d;
+}
+body.dark-mode .btn-info {
+    background-color: #3399cc;
+    border-color: #2d89b3;
+}
+body.dark-mode .btn-secondary {
+    background-color: #555;
+    border-color: #444;
+    color: #ddd;
+}
+body.dark-mode .card {
+    background-color: #2b2b2b; /* light grey */
+    color: #ffffff; /* dark text */
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {   
+    .card {
+        background-color: #121212; /* dark background */
+        color: #f5f5f5; /* white text */
+    }
+
+    .card-title {
+        color: #ffffff;
+    }
+
+    .card-text strong {
+        color: #ffffff;
+    }
+}

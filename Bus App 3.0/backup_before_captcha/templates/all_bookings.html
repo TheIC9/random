@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}View Bookings{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>📋 Bookings for Schedule</h2>
+    {% if schedule %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Bus {{ schedule['bus_number'] }} - {{ schedule['route_name'] }}</h5>
+            <p class="card-text">
+                Date: {{ schedule['departure_date'] }} <br>
+                Time: {{ schedule['departure_time'] }}
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if bookings %}
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Student ID</th>
+                <th>Name</th>
+                <th>Seat Number</th>
+                <th>Booking Time</th>
+                <th>Bus Number</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td>{{ booking['users']['student_id'] }}</td>
+                <td>{{ booking['users']['name'] }}</td>
+                <td>{{ booking['seat_number'] }}</td>
+                <td>{{ booking['booking_time'] }}</td>
+                <td>{{ booking['schedules']['bus_id'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+    {% else %}
+    <div class="alert alert-info">
+        No bookings found for this schedule.
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">⬅ Back to Admin Panel</a>
+</div>
+{% endblock %}
