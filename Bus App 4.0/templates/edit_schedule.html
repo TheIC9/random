@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Schedule{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Edit Bus Schedule</h2>
+    
+    {% if bus %}
+        {% if bus.booked_seats > 0 %}
+        <div class="alert alert-warning">
+            <strong>Warning:</strong> This schedule has <strong>{{ bus.booked_seats }}</strong> confirmed bookings.
+            Minimum capacity must be at least {{ bus.booked_seats }} seats.
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="bus_number" class="form-label">Bus Number</label>
+                        <input type="text" class="form-control" id="bus_number" name="bus_number" value="{{ bus.bus_number }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="departure_time" class="form-label">Departure Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="departure_time" name="departure_time" value="{{ bus.departure_time }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="total_seats" class="form-label">Total Seats</label>
+                        <input type="number" class="form-control" id="total_seats" name="total_seats" value="{{ bus.total_seats }}" min="{{ bus.booked_seats or 1 }}" required>
+                        <small class="text-muted">
+                            Current: {{ bus.booked_seats or 0 }} booked, {{ bus.available_seats or 0 }} available = {{ bus.total_seats }} total
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Update Schedule</button>
+                    <a href="{{ url_for('manage_buses') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-danger">
+            Schedule not found.
+        </div>
+        <a href="{{ url_for('manage_buses') }}" class="btn btn-secondary">Back to Manage Buses</a>
+    {% endif %}
+</div>
+{% endblock %}
