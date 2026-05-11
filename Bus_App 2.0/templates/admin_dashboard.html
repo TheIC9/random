@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-cog"></i> Admin Dashboard</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ stats.total_bookings }}</h4>
+                        <p>Total Bookings</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-ticket-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ stats.total_schedules }}</h4>
+                        <p>Active Schedules</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-bus fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>₹{{ stats.total_revenue }}</h4>
+                        <p>Total Revenue</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-rupee-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <a href="{{ url_for('create_schedule') }}" class="text-white text-decoration-none">
+                    <i class="fas fa-plus fa-2x"></i>
+                    <p class="mt-2">Create Schedule</p>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between">
+                <h5><i class="fas fa-list"></i> Manage Schedules</h5>
+                <a href="{{ url_for('manage_schedules') }}" class="btn btn-outline-light btn-sm">
+                    View All
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Route</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Seats</th>
+                                <th>Revenue</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for schedule_id, schedule in schedules.items() %}
+                            <tr>
+                                <td>{{ schedule_id }}</td>
+                                <td>{{ schedule.route }}</td>
+                                <td>{{ schedule.date }}</td>
+                                <td>{{ schedule.departure_time }}</td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ schedule.total_seats - schedule.available_seats }}/{{ schedule.total_seats }}
+                                    </span>
+                                </td>
+                                <td>₹{{ (schedule.total_seats - schedule.available_seats) * schedule.price }}</td>
+                                <td>
+                                    <a href="{{ url_for('delete_schedule', schedule_id=schedule_id) }}" 
+                                       class="btn btn-danger btn-sm" 
+                                       onclick="return confirm('Are you sure?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5><i class="fas fa-history"></i> Recent Bookings</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Ticket ID</th>
+                                <th>Student</th>
+                                <th>Schedule</th>
+                                <th>Seat</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket_id, booking in bookings.items() %}
+                            <tr>
+                                <td>{{ ticket_id }}</td>
+                                <td>{{ booking.student_name }}</td>
+                                <td>{{ booking.schedule_id }}</td>
+                                <td>{{ booking.seat_number }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if booking.status == 'confirmed' else 'danger' }}">
+                                        {{ booking.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('view_ticket', ticket_id=ticket_id) }}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

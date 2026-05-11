@@ -1,0 +1,430 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
+from werkzeug.security import check_password_hash, generate_password_hash
+import csv
+import json
+from datetime import datetime, timedelta
+import threading
+import uuid
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+import os
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
+import logging
+from dotenv import load_dotenv
+
+
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+load_dotenv()
+
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+app.secret_key = 'your-super-secret-key-change-this-in-production'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+
+# Google OAuth2 Configuration
+GOOGLE_CLIENT_ID = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+GOOGLE_CLIENT_SECRET = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+REDIRECT_URI = 'http://localhost:5000/callback'
+
+# Thread-safe data structures for handling multiple requests
+from threading import Lock
+data_lock = Lock()
+executor = ThreadPoolExecutor(max_workers=10)
+
+# In-memory storage (replace with database in production)
+users_data = {}
+schedules_data = {}
+bookings_data = {}
+seats_data = {}
+
+class BusBookingSystem:
+    def __init__(self):
+        self.load_user_data()
+        self.init_sample_data()
+    
+    def load_user_data(self):
+        """Load user data from CSV file"""
+        try:
+            with open('users.csv', 'r', newline='') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    users_data[row['student_id']] = {
+                        'name': row['name'],
+                        'password': row['password'],
+                        'email': row['email'],
+                        'role': row.get('role', 'student')
+                    }
+        except FileNotFoundError:
+            # Create sample users if file doesn't exist
+            sample_users = [
+                {'student_id': 'STU001', 'name': 'John Doe', 'password': 'password123', 'email': 'john@college.edu', 'role': 'student'},
+                {'student_id': 'ADM001', 'name': 'Admin User', 'password': 'admin123', 'email': 'admin@college.edu', 'role': 'admin'}
+            ]
+            with open('users.csv', 'w', newline='') as file:
+                writer = csv.DictWriter(file, fieldnames=['student_id', 'name', 'password', 'email', 'role'])
+                writer.writeheader()
+                writer.writerows(sample_users)
+            self.load_user_data()
+    
+    def init_sample_data(self):
+        """Initialize sample schedule data"""
+        schedules_data['SCH001'] = {
+            'id': 'SCH001',
+            'route': 'College to City Center',
+            'departure_time': '17:00',
+            'date': '2024-12-20',
+            'total_seats': 40,
+            'available_seats': 35,
+        }
+        
+        # Initialize seat layout
+        seats_data['SCH001'] = {}
+        for i in range(1, 41):
+            seats_data['SCH001'][f'S{i:02d}'] = {
+                'seat_number': f'S{i:02d}',
+                'is_booked': False,
+                'student_id': None,
+                'student_name': None
+            }
+
+booking_system = BusBookingSystem()
+
+# Google Sheets Integration
+class GoogleSheetsManager:
+    def __init__(self, credentials_file='credentials.json'):
+        self.credentials_file = credentials_file
+        self.service = None
+    
+    def authenticate(self):
+        """Authenticate with Google Sheets API"""
+        try:
+            flow = Flow.from_client_secrets_file(
+                self.credentials_file,
+                scopes=['https://www.googleapis.com/auth/spreadsheets']
+            )
+            flow.redirect_uri = REDIRECT_URI
+            self.service = build('sheets', 'v4', credentials=flow.credentials)
+            return True
+        except Exception as e:
+            logger.error(f"Google Sheets authentication failed: {e}")
+            return False
+    
+    def read_data(self, spreadsheet_id, range_name):
+        """Read data from Google Sheets"""
+        try:
+            result = self.service.spreadsheets().values().get(
+                spreadsheetId=spreadsheet_id,
+                range=range_name
+            ).execute()
+            return result.get('values', [])
+        except Exception as e:
+            logger.error(f"Failed to read from Google Sheets: {e}")
+            return []
+    
+    def write_data(self, spreadsheet_id, range_name, values):
+        """Write data to Google Sheets"""
+        try:
+            body = {'values': values}
+            result = self.service.spreadsheets().values().update(
+                spreadsheetId=spreadsheet_id,
+                range=range_name,
+                valueInputOption='RAW',
+                body=body
+            ).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to write to Google Sheets: {e}")
+            return False
+
+sheets_manager = GoogleSheetsManager()
+
+# Helper Functions
+def is_authenticated():
+    return 'user_id' in session
+
+def is_admin():
+    return session.get('role') == 'admin'
+
+def generate_ticket_id():
+    return f"TKT{uuid.uuid4().hex[:8].upper()}"
+
+# Routes
+@app.route('/')
+def index():
+    if is_authenticated():
+        if is_admin():
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return redirect(url_for('student_dashboard'))
+    return render_template('login.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        student_id = request.form.get('student_id')
+        password = request.form.get('password')
+        
+        with data_lock:
+            user = users_data.get(student_id)
+            
+        if user and user['password'] == password:
+            session.permanent = True
+            session['user_id'] = student_id
+            session['name'] = user['name']
+            session['role'] = user['role']
+            
+            if user['role'] == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('student_dashboard'))
+        else:
+            flash('Invalid credentials!')
+    
+    return render_template('login.html')
+
+@app.route('/google_login')
+def google_login():
+    flow = Flow.from_client_secrets_file(
+        'credentials.json',
+        scopes=['openid', 'email', 'profile'],
+        redirect_uri=REDIRECT_URI
+    )
+    authorization_url, _ = flow.authorization_url(prompt='consent')
+    return redirect(authorization_url)
+
+@app.route('/callback')
+def callback():
+    flow = Flow.from_client_secrets_file(
+        'credentials.json',
+        scopes=['openid', 'email', 'profile'],
+        redirect_uri=REDIRECT_URI
+    )
+    flow.fetch_token(authorization_response=request.url())
+    
+    credentials = flow.credentials
+    # Use credentials to get user info
+    # Implementation depends on your Google API setup
+    
+    flash('Google login successful!')
+    return redirect(url_for('student_dashboard'))
+
+@app.route('/student_dashboard')
+def student_dashboard():
+    if not is_authenticated() or is_admin():
+        return redirect(url_for('login'))
+    
+    with data_lock:
+        user_bookings = [booking for booking in bookings_data.values() 
+                        if booking['student_id'] == session['user_id']]
+    
+    return render_template('student_dashboard.html', 
+                         user=session, 
+                         bookings=user_bookings,
+                         schedules=schedules_data)
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if not is_authenticated() or not is_admin():
+        return redirect(url_for('login'))
+    
+    with data_lock:
+        total_bookings = len(bookings_data)
+        total_schedules = len(schedules_data)
+        total_revenue = sum(booking['price'] for booking in bookings_data.values())
+    
+    stats = {
+        'total_bookings': total_bookings,
+        'total_schedules': total_schedules,
+        'total_revenue': total_revenue
+    }
+    
+    return render_template('admin_dashboard.html', 
+                         user=session, 
+                         stats=stats,
+                         schedules=schedules_data,
+                         bookings=bookings_data)
+
+@app.route('/book_seat')
+def book_seat():
+    if not is_authenticated() or is_admin():
+        return redirect(url_for('login'))
+    
+    schedule_id = request.args.get('schedule_id')
+    if not schedule_id or schedule_id not in schedules_data:
+        flash('Invalid schedule selected!')
+        return redirect(url_for('student_dashboard'))
+    
+    schedule = schedules_data[schedule_id]
+    seats = seats_data.get(schedule_id, {})
+    
+    return render_template('book_seat.html', 
+                         schedule=schedule, 
+                         seats=seats,
+                         user=session)
+
+@app.route('/confirm_booking', methods=['POST'])
+def confirm_booking():
+    if not is_authenticated() or is_admin():
+        return redirect(url_for('login'))
+    
+    schedule_id = request.form.get('schedule_id')
+    seat_number = request.form.get('seat_number')
+    
+    with data_lock:
+        # Check if seat is available
+        if (schedule_id not in seats_data or 
+            seat_number not in seats_data[schedule_id] or
+            seats_data[schedule_id][seat_number]['is_booked']):
+            flash('Seat is not available!')
+            return redirect(url_for('book_seat', schedule_id=schedule_id))
+        
+        # Book the seat
+        ticket_id = generate_ticket_id()
+        seats_data[schedule_id][seat_number]['is_booked'] = True
+        seats_data[schedule_id][seat_number]['student_id'] = session['user_id']
+        seats_data[schedule_id][seat_number]['student_name'] = session['name']
+        
+        # Create booking record
+        bookings_data[ticket_id] = {
+            'ticket_id': ticket_id,
+            'student_id': session['user_id'],
+            'student_name': session['name'],
+            'schedule_id': schedule_id,
+            'seat_number': seat_number,
+            'booking_time': datetime.now().isoformat(),
+            'price': schedules_data[schedule_id]['price'],
+            'status': 'confirmed'
+        }
+        
+        # Update available seats
+        schedules_data[schedule_id]['available_seats'] -= 1
+    
+    flash('Booking confirmed successfully!')
+    return redirect(url_for('view_ticket', ticket_id=ticket_id))
+
+@app.route('/view_ticket/<ticket_id>')
+def view_ticket(ticket_id):
+    if not is_authenticated():
+        return redirect(url_for('login'))
+    
+    booking = bookings_data.get(ticket_id)
+    if not booking:
+        flash('Ticket not found!')
+        return redirect(url_for('student_dashboard'))
+    
+    # Check if user owns this ticket or is admin
+    if booking['student_id'] != session['user_id'] and not is_admin():
+        flash('Access denied!')
+        return redirect(url_for('student_dashboard'))
+    
+    schedule = schedules_data.get(booking['schedule_id'])
+    return render_template('ticket.html', booking=booking, schedule=schedule)
+
+@app.route('/admin/manage_schedules')
+def manage_schedules():
+    if not is_authenticated() or not is_admin():
+        return redirect(url_for('login'))
+    
+    return render_template('manage_schedules.html', schedules=schedules_data)
+
+@app.route('/admin/create_schedule', methods=['GET', 'POST'])
+def create_schedule():
+    if not is_authenticated() or not is_admin():
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        schedule_id = f"SCH{len(schedules_data) + 1:03d}"
+        
+        with data_lock:
+            schedules_data[schedule_id] = {
+                'id': schedule_id,
+                'route': request.form.get('route'),
+                'departure_time': request.form.get('departure_time'),
+                'date': request.form.get('date'),
+                'total_seats': int(request.form.get('total_seats', 40)),
+                'available_seats': int(request.form.get('total_seats', 40)),
+                'price': float(request.form.get('price', 25))
+            }
+            
+            # Initialize seats for this schedule
+            seats_data[schedule_id] = {}
+            for i in range(1, int(request.form.get('total_seats', 40)) + 1):
+                seats_data[schedule_id][f'S{i:02d}'] = {
+                    'seat_number': f'S{i:02d}',
+                    'is_booked': False,
+                    'student_id': None,
+                    'student_name': None
+                }
+        
+        flash('Schedule created successfully!')
+        return redirect(url_for('manage_schedules'))
+    
+    return render_template('create_schedule.html')
+
+@app.route('/admin/delete_schedule/<schedule_id>')
+def delete_schedule(schedule_id):
+    if not is_authenticated() or not is_admin():
+        return redirect(url_for('login'))
+    
+    with data_lock:
+        if schedule_id in schedules_data:
+            # Cancel all bookings for this schedule
+            bookings_to_cancel = [bid for bid, booking in bookings_data.items() 
+                                if booking['schedule_id'] == schedule_id]
+            for bid in bookings_to_cancel:
+                bookings_data[bid]['status'] = 'cancelled'
+            
+            del schedules_data[schedule_id]
+            if schedule_id in seats_data:
+                del seats_data[schedule_id]
+    
+    flash('Schedule deleted successfully!')
+    return redirect(url_for('manage_schedules'))
+
+@app.route('/api/seat_status/<schedule_id>')
+def get_seat_status(schedule_id):
+    """API endpoint to get real-time seat status"""
+    with data_lock:
+        if schedule_id not in seats_data:
+            return jsonify({'error': 'Schedule not found'}), 404
+        
+        seat_status = {}
+        for seat_num, seat_info in seats_data[schedule_id].items():
+            seat_status[seat_num] = {
+                'is_booked': seat_info['is_booked'],
+                'student_name': seat_info.get('student_name', None) if seat_info['is_booked'] else None
+            }
+    
+    return jsonify(seat_status)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Logged out successfully!')
+    return redirect(url_for('login'))
+
+# Error Handlers
+@app.errorhandler(404)
+def not_found(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def server_error(error):
+    return render_template('500.html'), 500
+
+if __name__ == '__main__':
+    # Create necessary directories
+    os.makedirs('templates', exist_ok=True)
+    os.makedirs('static/css', exist_ok=True)
+    os.makedirs('static/js', exist_ok=True)
+    
+    app.run(debug=True, threaded=True, host='0.0.0.0', port=5000)

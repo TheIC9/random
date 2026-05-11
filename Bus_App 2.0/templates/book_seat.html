@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Book Seat{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-seat-alt"></i> Select Your Seat</h2>
+        <div class="card mt-3">
+            <div class="card-header bg-primary text-white">
+                <h5>{{ schedule.route }}</h5>
+                <small>{{ schedule.date }} at {{ schedule.departure_time }} | ₹{{ schedule.price }}</small>
+            </div>
+            <div class="card-body">
+                <div class="bus-layout">
+                    <div class="text-center mb-3">
+                        <h6><i class="fas fa-steering-wheel"></i> Driver</h6>
+                        <hr>
+                    </div>
+                    
+                    <div class="seat-map" id="seatMap">
+                        {% set seats_per_row = 4 %}
+                        {% set total_seats = seats|length %}
+                        {% for seat_num, seat_info in seats.items() %}
+                            {% set row_index = loop.index0 // seats_per_row %}
+                            {% if loop.index0 % seats_per_row == 0 %}
+                                <div class="row mb-2">
+                            {% endif %}
+                            
+                            <div class="col-3 text-center">
+                                <div class="seat {{ 'booked' if seat_info.is_booked else 'available' }}" 
+                                     data-seat="{{ seat_num }}"
+                                     {% if not seat_info.is_booked %}onclick="selectSeat('{{ seat_num }}')"{% endif %}>
+                                    {{ seat_num }}
+                                </div>
+                                {% if seat_info.is_booked %}
+                                    <small class="text-muted">{{ seat_info.student_name[:10] }}...</small>
+                                {% endif %}
+                            </div>
+                            
+                            {% if loop.index % seats_per_row == 0 or loop.last %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="seat available"></div>
+                                <small>Available</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="seat selected"></div>
+                                <small>Selected</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="seat booked"></div>
+                                <small>Booked</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="bookingForm" method="POST" action="{{ url_for('confirm_booking') }}" class="mt-4">
+                    <input type="hidden" name="schedule_id" value="{{ schedule.id }}">
+                    <input type="hidden" name="seat_number" id="selectedSeat">
+                    
+                    <div class="text-center">
+                        <div id="selectionInfo" class="alert alert-info" style="display: none;">
+                            <strong>Selected Seat:</strong> <span id="selectedSeatDisplay"></span><br>
+                            <strong>Price:</strong> ₹{{ schedule.price }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-lg" id="confirmBtn" disabled>
+                            <i class="fas fa-check"></i> Confirm Booking
+                        </button>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-lg ms-2">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedSeatNum = null;
+
+function selectSeat(seatNum) {
+    // Clear previous selection
+    document.querySelectorAll('.seat.selected').forEach(seat => {
+        seat.classList.remove('selected');
+        seat.classList.add('available');
+    });
+    
+    // Select new seat
+    const seatElement = document.querySelector(`[data-seat="${seatNum}"]`);
+    seatElement.classList.remove('available');
+    seatElement.classList.add('selected');
+    
+    // Update form
+    selectedSeatNum = seatNum;
+    document.getElementById('selectedSeat').value = seatNum;
+    document.getElementById('selectedSeatDisplay').textContent = seatNum;
+    document.getElementById('selectionInfo').style.display = 'block';
+    document.getElementById('confirmBtn').disabled = false;
+}
+
+// Real-time seat updates
+function updateSeats() {
+    fetch(`/api/seat_status/{{ schedule.id }}`)
+        .then(response => response.json())
+        .then(data => {
+            for (let seatNum in data) {
+                const seatElement = document.querySelector(`[data-seat="${seatNum}"]`);
+                if (data[seatNum].is_booked && !seatElement.classList.contains('booked')) {
+                    seatElement.classList.remove('available', 'selected');
+                    seatElement.classList.add('booked');
+                    seatElement.onclick = null;
+                }
+            }
+        })
+        .catch(error => console.error('Error updating seats:', error));
+}
+
+// Update seats every 10 seconds
+setInterval(updateSeats, 10000);
+</script>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Student Dashboard</h2>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-bus"></i> Available Schedules</h5>
+            </div>
+            <div class="card-body">
+                {% if schedules %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Route</th>
+                                    <th>Date</th>
+                                    <th>Departure</th>
+                                    <th>Available Seats</th>
+                                    <th>Price</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule_id, schedule in schedules.items() %}
+                                <tr>
+                                    <td>{{ schedule.route }}</td>
+                                    <td>{{ schedule.date }}</td>
+                                    <td>{{ schedule.departure_time }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if schedule.available_seats > 10 else 'warning' if schedule.available_seats > 0 else 'danger' }}">
+                                            {{ schedule.available_seats }}/{{ schedule.total_seats }}
+                                        </span>
+                                    </td>
+                                    <td>₹{{ schedule.price }}</td>
+                                    <td>
+                                        {% if schedule.available_seats > 0 %}
+                                            <a href="{{ url_for('book_seat', schedule_id=schedule_id) }}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-ticket-alt"></i> Book Now
+                                            </a>
+                                        {% else %}
+                                            <span class="btn btn-secondary btn-sm disabled">Sold Out</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-bus fa-3x text-muted"></i>
+                        <h5 class="mt-3 text-muted">No schedules available</h5>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5><i class="fas fa-history"></i> My Bookings</h5>
+            </div>
+            <div class="card-body">
+                {% if bookings %}
+                    {% for booking in bookings %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ booking.ticket_id }}</strong>
+                            <span class="badge bg-{{ 'success' if booking.status == 'confirmed' else 'danger' }}">
+                                {{ booking.status }}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            Seat: {{ booking.seat_number }}<br>
+                            Schedule: {{ booking.schedule_id }}
+                        </small>
+                        <div class="mt-1">
+                            <a href="{{ url_for('view_ticket', ticket_id=booking.ticket_id) }}" class="btn btn-outline-primary btn-sm">
+                                View Ticket
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-ticket-alt fa-2x text-muted"></i>
+                        <p class="mt-2 text-muted">No bookings yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

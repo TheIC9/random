@@ -1,0 +1,47 @@
+<!-- templates/ticket.html -->
+{% extends "base.html" %}
+
+{% block title %}E-Ticket{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="ticket">
+            <div class="text-center mb-4">
+                <h2><i class="fas fa-bus"></i> E-TICKET</h2>
+                <h4>{{ booking.ticket_id }}</h4>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-user"></i> Passenger Details</h5>
+                    <p><strong>Name:</strong> {{ booking.student_name }}</p>
+                    <p><strong>Student ID:</strong> {{ booking.student_id }}</p>
+                    <p><strong>Seat Number:</strong> {{ booking.seat_number }}</p>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5><i class="fas fa-route"></i> Journey Details</h5>
+                    <p><strong>Route:</strong> {{ schedule.route }}</p>
+                    <p><strong>Date:</strong> {{ schedule.date }}</p>
+                    <p><strong>Departure:</strong> {{ schedule.departure_time }}</p>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <small>Booking Time: {{ booking.booking_time }}</small><br>
+                <small>Status: <span class="badge bg-light text-dark">{{ booking.status.upper() }}</span></small>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> Print Ticket
+            </button>
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+
+<!-- templates/login.html -->
+{% extends "base.html" %}
+
+{% block title %}Login - College Bus Booking{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-sign-in-alt"></i> Login</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="student_id" class="form-label">Student/Admin ID</label>
+                        <input type="text" class="form-control" id="student_id" name="student_id" required>
+                        <div class="form-text">Use STU001 for student demo, ADM001 for admin demo</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">Use password123 for student, admin123 for admin</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                        
+                        <div class="text-center my-2">
+                            <span class="text-muted">OR</span>
+                        </div>
+                        
+                        <a href="{{ url_for('google_login') }}" class="btn btn-danger">
+                            <i class="fab fa-google"></i> Login with Google
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
