@@ -1,0 +1,15 @@
+flask==3.0.3
+flask-cors==4.0.1
+flask-sqlalchemy==3.1.1
+flask-socketio==5.3.6
+python-dotenv==1.0.1
+# Socket.IO async transport (threading mode — no asyncio needed)
+simple-websocket==1.0.0
+
+# Optional: server-side OpenCV image processing
+opencv-python==4.9.0.80
+numpy==1.26.4
+
+# Production WSGI server (use instead of flask run in prod)
+# gunicorn==22.0.0
+# eventlet==0.36.1     ← use with socketio async_mode="eventlet" in prod

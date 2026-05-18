@@ -1,0 +1,193 @@
+/* frontend/src/App.css */
+/* Aesthetic: dark, cinematic, minimal chrome — the puzzle is the star */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Unbounded:wght@300;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:    #F5C842;
+  --white:   #F0EDE8;
+  --dim:     rgba(240,237,232,0.55);
+  --panel:   rgba(12,10,8,0.72);
+  --radius:  10px;
+  --mono:    'DM Mono', monospace;
+  --display: 'Unbounded', sans-serif;
+}
+
+html, body, #root {
+  width: 100%; height: 100%;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.app {
+  position: relative;
+  width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.video-hidden {
+  position: absolute;
+  opacity: 0; pointer-events: none;
+  width: 1px; height: 1px;
+}
+
+.game-canvas {
+  display: block;
+  max-width:  100vw;
+  max-height: 100vh;
+  width:  auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* ── HUD ─────────────────────────────────────────────────────────────────── */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hud-panel {
+  position: absolute;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(245,200,66,0.2);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  color: var(--white);
+  font-family: var(--mono);
+  pointer-events: all;
+}
+
+.hud-panel.hud-top-right {
+  top: 20px; right: 20px;
+  display: flex; flex-direction: column; gap: 4px;
+  align-items: flex-end;
+  min-width: 180px;
+}
+
+.hud-panel.hud-center {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  min-width: 240px;
+}
+
+.hud-panel.hud-hint-bottom {
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Scanning panel: bottom-center */
+.hud-panel:first-child:not(.hud-top-right):not(.hud-center):not(.hud-hint-bottom) {
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 10px; align-items: center;
+  min-width: 320px;
+}
+
+.hud-instruction {
+  font-size: 13px; color: var(--dim); text-align: center;
+  line-height: 1.5;
+}
+
+.hud-label {
+  font-size: 12px; color: var(--dim);
+  display: flex; align-items: center; gap: 10px;
+}
+
+.hud-input {
+  background: rgba(255,255,255,0.07);
+  border: 0.5px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: var(--white);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 5px 10px;
+  outline: none;
+  width: 160px;
+}
+
+.hud-input:focus { border-color: var(--gold); }
+
+.hud-timer {
+  font-family: var(--display);
+  font-size: 28px; font-weight: 600;
+  color: var(--gold);
+  letter-spacing: -0.5px;
+}
+
+.hud-moves {
+  font-size: 12px; color: var(--dim);
+}
+
+.hud-hint {
+  font-size: 10px; color: rgba(240,237,232,0.35);
+  margin-top: 4px;
+}
+
+.hud-solved {
+  font-family: var(--display);
+  font-size: 36px; font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.hud-hint-bottom span {
+  font-size: 12px; color: var(--dim);
+}
+
+/* ── Leaderboard ─────────────────────────────────────────────────────────── */
+.leaderboard {
+  position: absolute;
+  top: 20px; left: 20px;
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  border: 0.5px solid rgba(245,200,66,0.2);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  min-width: 260px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.leaderboard-title {
+  font-family: var(--display);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.leaderboard-empty {
+  font-family: var(--mono);
+  font-size: 12px; color: var(--dim);
+}
+
+.leaderboard-list {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.leaderboard-entry {
+  display: grid;
+  grid-template-columns: 24px 1fr 60px 56px;
+  gap: 8px;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--white);
+  padding-bottom: 8px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.06);
+}
+
+.leaderboard-entry:last-child { border-bottom: none; }
+
+.lb-rank   { color: var(--gold); font-size: 11px; }
+.lb-name   { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-time   { text-align: right; color: var(--gold); }
+.lb-moves  { text-align: right; color: var(--dim); font-size: 11px; }
